@@ -504,7 +504,7 @@ IsPinValid() {
     count_user_sum
     gen_pt_pin_array
 
-    [[ ! -s $file_key ]] && wget -q https://gitee.com/highdimen/js_tool/raw/A1/resource/encrypto/JD_PIN.key -O $file_key && sha1sum $file_key >$file_key_cry
+    [[ ! -s $file_key ]] && wget -q https://gitee.com/wuyouio/base/raw/A1/resource/encrypto/JD_PIN.key -O $file_key && sha1sum $file_key >$file_key_cry
     ## [[ -z $(grep -w $file_key_Hash $file_key_cry) ]] >/dev/null 2>&1 && rm -rf $file_key && rm -rf $file_key_cry && echo "密钥错误" && exit 0
     for ((j = 0; j <= $user_sum - 1; j++)); do
         [ -z $(grep -w ${pt_pin_test[j]} $dir_config/.key) ] >/dev/null 2>&1 && rm -rf $file_key && echo "您的第$(($j + 1))个账号：${pt_pin[j]} 未经授权" && exit 0
@@ -786,7 +786,7 @@ git_pull_scripts() {
 
 ## 克隆scripts2
 function Git_CloneScripts2 {
-    git clone -b master https://gitee.com/highdimen/jd_scripts ${dir_scripts2} >/dev/null 2>&1
+    git clone -b master https://gitee.com/wuyouio/scripts ${dir_scripts2} >/dev/null 2>&1
     ExitStatusScripts2=$?
 }
 
