@@ -15,7 +15,7 @@
     <link rel="icon" type="image/x-icon" href="https://github.com/favicon.ico" />
     <link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.staticfile.org/font-awesome/5.12.1/css/all.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/cjl0372/cjl0372.github.io@master/style.css">
+    <link rel="stylesheet" href="./css/login.css">
     <style type="text/css">
         body,
         html {
@@ -158,7 +158,7 @@
 </head>
 
 <body>
-    <div id="main" class="container">
+    <!--<div id="main" class="container">
         <div class="row my-card justify-content-center">
             <div class="col-lg-4 photo-bg"></div>
             <div class="col-lg-8 card">
@@ -185,8 +185,22 @@
                 </footer>
             </div>
         </div>
+    </div>-->
+    <div class="box">
+        <h1 align="center">JS-TOOL面板</h1>
+        <form>
+            <div class="inputBox">
+                <input type="text" name="username" class="username" required="">
+                <label>用户名</label>
+            </div>
+            <div class="inputBox">
+                <input type="password"  name="password" class="password"  required="">
+                <label>密码</label>
+            </div>
+            <input type="submit" id="login" value="登录">
+        </form>
+        <a id="jumpapp" class="btn btn-secondary col-lg-4" style="margin-top: 15px" href="/">返回主页</a>
     </div>
-
     <!--弹窗-->
     <script type="text/javascript" src="./js/skel.min.js"></script>
     <script type="text/javascript"
