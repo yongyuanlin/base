@@ -9,7 +9,7 @@ TasksTerminateTime=10000
 NodeType="nohup"
 IsWebShell="false"
 #ConfigCover="false"
-file_key_Hash=22c1d23e38a7d651d47e3a578de1bb08637f1fdb
+#file_key_Hash=22c1d23e38a7d651d47e3a578de1bb08637f1fdb
 UserLimit=800
 OverTime=0
 fixfixfix=0
@@ -28,6 +28,7 @@ fix_dir_shell=$(dirname $dir_shell)
 dir_root=$dir_shell
 dir_rootup=$(dirname $dir_root)
 dir_config=$dir_root/config
+SignDir=$dir_root/sign
 dir_AutoConfig=$dir_root/.AutoConfig
 dir_scripts=$dir_root/scripts
 dir_scripts2=$dir_root/.scripts2
@@ -56,11 +57,14 @@ file_env_sys=$dir_config/Env.js
 file_env_sys_sample=$dir_sample/Env.js
 file_auth_sample=$dir_sample/auth.json.sample
 file_auth_user=$dir_config/auth.json
+FileAccountConf=$dir_config/account.json
+FileAccountConfSample=$dir_sample/account.json.sample
 file_diy_shell=$dir_config/diy.sh
 send_mark=$dir_shell/send_mark
 file_key=$dir_config/.key
 file_key_cry=$dir_config/.keycry
 file_panel_server=$dir_panel/server.js
+FileUpdateCookie=$dir_panel/updateCookies.js
 file_panel_public_terminal=$dir_panel/public/terminal.html
 
 ## 豆子变化记录文件
@@ -348,6 +352,7 @@ fix_files() {
     [ -d $olddir_scripts2 ] && rm -rf $olddir_scripts2
     [ ! -f $file_config_user ] && cp -f $file_config_sample $file_config_user
     [ ! -f $file_cookie ] && cp -f $file_cookie_sample $file_cookie
+    [ ! -f $FileAccountConf ] && cp -f $FileAccountConfSample $FileAccountConf
     [ ! -f $list_crontab_user ] && cp -f $list_crontab_sample $list_crontab_user
     [ ! -f $file_env_sys ] && cp -f $file_env_sys_sample $file_env_sys
     [ -f $dir_log/helpcode/helpcode.log ] && rm -rf $dir_log/helpcode/helpcode.log
@@ -378,8 +383,8 @@ AutoConfig() {
     . $file_config_sys
 
     #git配置
-    git config user.email "lan-tianxiang@@users.noreply.github.com"
-    git config user.name "lan-tianxiang"
+    git config user.email "yongyuanlin@@users.noreply.github.com"
+    git config user.name "yongyuanlin"
     git config --global pull.rebase true
 }
 
@@ -786,7 +791,7 @@ git_pull_scripts() {
 
 ## 克隆scripts2
 function Git_CloneScripts2 {
-    git clone -b master https://gitee.com/wuyouio/scripts ${dir_scripts2} >/dev/null 2>&1
+    git clone -b master https://gitee.com/wuyouio/scripts.git ${dir_scripts2} >/dev/null 2>&1
     ExitStatusScripts2=$?
 }
 
@@ -797,7 +802,117 @@ function Git_PullScripts2 {
     ExitStatusScripts2=$?
     git reset --hard origin/master >/dev/null 2>&1
 }
+## 同步定时清单
+function Update_Crontab() {
+    if [[ $(cat $list_crontab_user) != $(crontab -l) ]]; then
+        crontab $list_crontab_user
+    fi
+}
+## 账号控制
+function Cookies_Control() {
+    import_config_and_check
+    case $1 in
+    check)
+        count_user_sum
+        # [ -f $send_mark ] && rm -rf $send_mark
+        function Gen_pt_pin_array() {
+            local Tmp1 Tmp2 i pt_pin_temp
+            for ((user_num = 1; user_num <= $user_sum; user_num++)); do
+                Tmp1=Cookie$user_num
+                Tmp2=${!Tmp1}
+                i=$(($user_num - 1))
+                pt_pin_temp=$(echo $Tmp2 | perl -pe "{s|.*pt_pin=([^; ]+)(?=;?).*|\1|}")
+                pt_pin[i]=$pt_pin_temp
+            done
+        }
 
+        function CheckCookie() {
+            local p=$1
+            local ConnectionTest="$(curl -I -s --connect-timeout 5 https://bean.m.jd.com/bean/signIndex.action -w %{http_code} | tail -n1)"
+            local CookieValidityTest="$(curl -s --noproxy "*" "https://bean.m.jd.com/bean/signIndex.action" -H "cookie: $p")"
+            if [ "$ConnectionTest" -eq "302" ]; then
+                if [[ "$CookieValidityTest" ]]; then
+                    echo -e "\033[32m[✔]\033[0m"
+                else
+                    echo -e "\033[31m[X]\033[0m"
+                fi
+            else
+                echo -e "\033[31m[API请求失败]\033[0m"
+            fi
+        }
+
+        function Print_Info() {
+            echo -e "\n检测到本地共有 \033[34m$UserSum\033[0m 个账号，当前状态信息如下（[✔]有效，[X]无效）："
+            for ((m = 0; m < $user_sum; m++)); do
+                local CookieUpdateDate=$(grep "上次更新：" $FileConfUser | grep ${pt_pin[m]} | grep -E "20[0-9][0-9]" | head -1 | awk -F '：' '{print$2}' | awk -F ' ' '{print$1}')
+                if [ -z ${CookieUpdateDate} ]; then
+                    local UpdateTime="更新日期：[\033[34mUnknow\033[0m]"
+                else
+                    local UpdateTime="更新日期：[\033[34m${CookieUpdateDate}\033[0m]"
+                    local Tmp1=$(($(date -d $(date "+%Y-%m-%d") +%s) - $(date -d "${CookieUpdateDate}" +%s)))
+                    local Tmp2=$(($Tmp1 / 86400))
+                    local Tmp3=$((30 - $Tmp2))
+                    [ -z $CheckCookieDaysAgo ] && local Days="2" || local Days=$(($CheckCookieDaysAgo - 1))
+                    if [ $Tmp3 -le $Days ] && [ $Tmp3 -ge 0 ]; then
+                        [ $Tmp3 = 0 ] && local TmpTime="今天" || local TmpTime="$Tmp3天后"
+                        echo -e "账号$((m + 1))：$(printf $(echo ${pt_pin[m]} | perl -pe "s|%|\\\x|g;")) 将在$TmpTime过期"
+                        # echo -e "账号$((m + 1))：$(printf $(echo ${pt_pin[m]} | perl -pe "s|%|\\\x|g;")) 将在$TmpTime过期" >>$FileSendMark
+                    fi
+                fi
+                num=$((m + 1))
+                echo -e "$num：$(printf $(echo ${pt_pin[m]} | perl -pe "s|%|\\\x|g;")) $(CheckCookie $(grep -E "Cookie[1-9]" $FileConfUser | grep ${pt_pin[m]} | awk -F '\"' '{print$2}'))    $UpdateTime"
+            done
+        }
+        Gen_pt_pin_array
+        Print_Info
+        # if [ -f $send_mark ]; then
+        #     echo -e "\n检测到下面的账号将在近期失效，请注意即时更新！"
+        #     cat $send_mark
+        #     sed -i 's/$/&\\n/g' $send_mark
+        #     Notify "账号过期提醒" "$(cat $send_mark)"
+        #     rm -rf $send_mark
+        # fi
+        echo ''
+        ;;
+    update)
+        [ -f $send_mark ] && rm -rf $send_mark
+        ## 执行脚本
+        if [ -f $FileUpdateCookie ]; then
+            local UserNum AccountNum
+            import_config_and_check
+            Update_Crontab
+            count_user_sum
+            LogPath="$dir_log/updateCookies"
+            make_dir ${LogPath}
+            echo -e "\n$WORKING 正在依次更新中，请耐心等待所有任务执行完毕...\n"
+            for ((UserNum = 1; UserNum <= ${user_sum}; UserNum++)); do
+                for num in ${TempBlockCookie}; do
+                    [[ $UserNum -eq $num ]] && continue 2
+                done
+                AccountNum=Cookie$UserNum
+                grep -q "$(echo ${!AccountNum} | grep -o "pt_pin.*;" | awk -F '\;' '{print$1}' | perl -pe '{s|pt_pin=||g}')" $FileAccountConf
+                if [[ $? -eq 0 ]]; then
+                    export JD_COOKIE=${!AccountNum}
+                else
+                    continue
+                fi
+                LogFile="${LogPath}/$(date "+%Y-%m-%d-%H-%M-%S")_$UserNum.log"
+                cd $dir_panel
+                node updateCookies.js &>${LogFile} &
+                wait
+                grep "Cookie =>" ${LogFile} | tee -a $send_mark
+            done
+            echo -e "\n$COMPLETE 更新完成\n"
+            if [ -f $send_mark ]; then
+                [[ $AccountUpdateNotify == true ]] && notify "账号更新结果通知" "$(cat $send_mark)"
+                rm -rf $send_mark
+            fi
+        else
+            echo -e "\n$ERROR 账号更新脚本不存在，请确认是否移动！\n"
+        fi
+        ;;
+    esac
+}
 ## 统计 thirdpard 仓库数量
 count_thirdpard_repo_sum() {
     if [[ -z ${ThirdpardRepoUrl1} ]]; then
@@ -1167,7 +1282,7 @@ thirdpard脚本目录：$dir_thirdpard
         fi
     fi
     ## 更新scripts2
-    [ -d ${dir_scripts2}/.git ] && Git_PullScripts2 || Git_CloneScripts2
+    ## [ -d ${dir_scripts2}/.git ] && Git_PullScripts2 || Git_CloneScripts2
 
     ## 更新scripts
     ## 更新前先存储package.json和githubAction.md的内容
@@ -1255,9 +1370,9 @@ thirdpard脚本目录：$dir_thirdpard
     fi
 
     ##使scripts2生效
-    cp -f ${dir_scripts2}/jd_*.js ${dir_scripts}
-    [ -f ${dir_scripts2}/ZooFaker.js ] && cp -f ${dir_scripts2}/ZooFaker.js ${dir_scripts}
-    cp -f ${dir_scripts2}/sendNotify.js ${dir_scripts}
+#    cp -f ${dir_scripts2}/jd_*.js ${dir_scripts}
+#    [ -f ${dir_scripts2}/ZooFaker.js ] && cp -f ${dir_scripts2}/ZooFaker.js ${dir_scripts}
+#    cp -f ${dir_scripts2}/sendNotify.js ${dir_scripts}
 
     ## 调用用户自定义的diy.sh
     if [[ ${EnableExtraShell} == true ]]; then
@@ -1345,25 +1460,25 @@ combine_all() {
     ## 京喜工厂(jd_dreamFactory.js)
     export DREAM_FACTORY_SHARE_CODES=$(combine_sub ForOtherDreamFactory "")
     ## 京东赚赚(jd_jdzz.js)
-    export JDZZ_SHARECODES=$(combine_sub ForOtherJdzz "")
+    export JDZZ_SHARECODES=$(combine_sub ForOtherJdzz)
     ## 疯狂的Joy(jd_crazy_joy.js)
-    export JDJOY_SHARECODES=$(combine_sub ForOtherJoy "")
+    export JDJOY_SHARECODES=$(combine_sub ForOtherJoy)
     ## 口袋书店(jd_bookshop.js)
-    export BOOKSHOP_SHARECODES=$(combine_sub ForOtherBookShop)
+    export BOOKSHOP_SHARECODES=$(combine_sub ForOtherBookShop "")
     ## 签到领现金(jd_cash.js)
-    export JD_CASH_SHARECODES=$(combine_sub ForOtherCash "")
+    export JD_CASH_SHARECODES=$(combine_sub ForOtherCash)
     ## 京喜农场(jd_jxnc.js)
     export JXNC_SHARECODES=$(combine_sub ForOtherJxnc)
     ## 闪购盲盒(jd_sgmh.js)
-    export JDSGMH_SHARECODES=$(combine_sub ForOtherSgmh)
+    export JDSGMH_SHARECODES=$(combine_sub ForOtherSgmh "")
     ## 京喜财富岛(jd_cfd.js)
-    export JDCFD_SHARECODES=$(combine_sub ForOtherCfd)
+    export JDCFD_SHARECODES=$(combine_sub ForOtherCfd "")
     ## 环球挑战赛(jd_global.js)
-    export JDGLOBAL_SHARECODES=$(combine_sub ForOtherGlobal "")
+    export JDGLOBAL_SHARECODES=$(combine_sub ForOtherGlobal)
     ## 京东手机狂欢城(jd_carnivalcity.js)
-    export JD818_SHARECODES=$(combine_sub ForOtherCarnivalcity "")
+    export JD818_SHARECODES=$(combine_sub ForOtherCarnivalcity)
 
-    export JDHEALTH_SHARECODES=$(combine_sub ForOtherHealth)
+    export JDHEALTH_SHARECODES=$(combine_sub ForOtherHealth "")
 }
 
 ## 并发运行时，直接申明每个账号的Cookie与互助码，$1：用户Cookie编号
@@ -1459,6 +1574,7 @@ usage() {
     echo -e "$cmd_jd clean           # 手动清理日记"
     echo -e "$cmd_jd hangup          # 重启挂机程序"
     echo -e "$cmd_jd update          # 更新最新版本"
+    echo -e "$cmd_jd cookie update   # wskey转cookie并更新"
     echo
     echo -e "\n当前scripts目录下有以下脚本可以运行："
     for ((i = 0; i < ${#array_scripts[*]}; i++)); do
@@ -1910,6 +2026,17 @@ case $# in
         ;;
     test715)
         run_normaltest $1 $2
+        ;;
+    update | check)
+        case $1 in
+        cookie)
+            Cookies_Control $2
+            ;;
+        *)
+            echo -e "\n$COMMAND_ERROR"
+            Help
+            ;;
+        esac
         ;;
     *)
         echo -e "\n命令输入错误...\n"

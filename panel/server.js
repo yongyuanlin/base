@@ -31,6 +31,8 @@ var crontabFile = path.join(rootPath, 'config/crontab.list');
 var confBakDir = path.join(rootPath, 'config/bak/');
 // auth.json 文件目录
 var authConfigFile = path.join(rootPath, 'config/auth.json');
+// account.json 文件目录
+var accountConfigFile = path.join(rootPath, 'config/account.json');
 // 限制文件
 var autoConfigFile = path.join(rootPath, '.AutoConfig/config.sh');
 // Share Code 文件目录
@@ -45,7 +47,7 @@ var ScriptsPath = path.join(rootPath, 'scripts/');
 var authError = "错误的用户名密码，请重试";
 var loginFaild = "请先登录!";
 
-var configString = "config usrconfig sample crontab shareCode diy";
+var configString = "config usrconfig sample crontab shareCode diy accounts";
 
 var s_token, cookies, guid, lsid, lstoken, okl_token, token, userCookie = "";
 
@@ -95,7 +97,7 @@ async function step1() {
                 'Accept': 'application/json, text/plain, */*',
                 'Accept-Language': 'zh-cn',
                 'Referer': 'https://plogin.m.jd.com/login/login?appid=300&returnurl=https://wq.jd.com/passport/LoginRedirect?state=' + timeStamp + '&returnurl=https://home.m.jd.com/myJd/newhome.action?sceneval=2&ufc=&/myJd/home.action&source=wq_passport',
-                'User-Agent': 'jdapp;iPhone;10.1.2;14.7.1;${randomString(40)};network/wifi;model/iPhone10,2;addressid/4091160336;appBuild/167802;jdSupportDarkMode/0;Mozilla/5.0 (iPhone; CPU iPhone OS 14_7_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148;supportJDSHWK/1',
+                'User-Agent': `jdapp;iPhone;10.1.2;14.7.1;${randomString(40)};network/wifi;model/iPhone10,2;addressid/4091160336;appBuild/167802;jdSupportDarkMode/0;Mozilla/5.0 (iPhone; CPU iPhone OS 14_7_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148;supportJDSHWK/1`,
                 'Host': 'plogin.m.jd.com'
             }
         });
@@ -128,7 +130,7 @@ async function step2() {
                 'Accept': 'application/json, text/plain, */*',
                 'Cookie': cookies,
                 'Referer': 'https://plogin.m.jd.com/login/login?appid=300&returnurl=https://wqlogin2.jd.com/passport/LoginRedirect?state=' + timeStamp + '&returnurl=//home.m.jd.com/myJd/newhome.action?sceneval=2&ufc=&/myJd/home.action&source=wq_passport',
-                'User-Agent': 'jdapp;iPhone;10.1.2;14.7.1;${randomString(40)};network/wifi;model/iPhone10,2;addressid/4091160336;appBuild/167802;jdSupportDarkMode/0;Mozilla/5.0 (iPhone; CPU iPhone OS 14_7_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148;supportJDSHWK/1',
+                'User-Agent': `jdapp;iPhone;10.1.2;14.7.1;${randomString(40)};network/wifi;model/iPhone10,2;addressid/4091160336;appBuild/167802;jdSupportDarkMode/0;Mozilla/5.0 (iPhone; CPU iPhone OS 14_7_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148;supportJDSHWK/1`,
                 'Host': 'plogin.m.jd.com',
             }
         });
@@ -166,7 +168,7 @@ async function checkLogin() {
                 'Connection': 'Keep-Alive',
                 'Content-Type': 'application/x-www-form-urlencoded; Charset=UTF-8',
                 'Accept': 'application/json, text/plain, */*',
-                'User-Agent': 'jdapp;iPhone;10.1.2;14.7.1;${randomString(40)};network/wifi;model/iPhone10,2;addressid/4091160336;appBuild/167802;jdSupportDarkMode/0;Mozilla/5.0 (iPhone; CPU iPhone OS 14_7_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148;supportJDSHWK/1',
+                'User-Agent': `jdapp;iPhone;10.1.2;14.7.1;${randomString(40)};network/wifi;model/iPhone10,2;addressid/4091160336;appBuild/167802;jdSupportDarkMode/0;Mozilla/5.0 (iPhone; CPU iPhone OS 14_7_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148;supportJDSHWK/1`,
             }
         });
 
@@ -189,7 +191,7 @@ function TotalBean() {
           Accept: "*/*",
           Connection: "keep-alive",
           Cookie: cookies,
-          'User-Agent': 'jdapp;iPhone;10.1.2;14.7.1;${randomString(40)};network/wifi;model/iPhone10,2;addressid/4091160336;appBuild/167802;jdSupportDarkMode/0;Mozilla/5.0 (iPhone; CPU iPhone OS 14_7_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148;supportJDSHWK/1',
+          'User-Agent': 'Mozilla/5.0 (iPhone; U; CPU iPhone OS 4_3_2 like Mac OS X; en-us) AppleWebKit/533.17.9 (KHTML, like Gecko) Version/5.0.2 Mobile/8H7 Safari/6533.18.5 UCBrowser/13.4.2.1122',
           "Accept-Language": "zh-cn",
           "Referer": "https://home.m.jd.com/myJd/newhome.action?sceneval=2&ufc=&",
           "Accept-Encoding": "gzip, deflate, br"
@@ -261,6 +263,17 @@ function AutoAddCK(cookie, msg) {
     saveNewConf('cookie.sh', lines.join('\n'));
 }
 
+/**
+ * 生成随机 iPhoneID
+ * @returns {string}
+ */
+function randomString(e) {
+    e = e || 32;
+    let t = "abcdef0123456789", a = t.length, n = "";
+    for (i = 0; i < e; i++)
+        n += t.charAt(Math.floor(Math.random() * a));
+    return n
+}
 /**
  * hash方法
  *
@@ -366,6 +379,10 @@ function bakConfFile(file) {
             oldConfContent = getFileContentByName(diyFile);
             fs.writeFileSync(bakConfFile, oldConfContent);
             break;
+        case "account.json":
+            oldConfContent = getFileContentByName(accountConfigFile);
+            fs.writeFileSync(bakConfFile, oldConfContent);
+            break;
         default:
             break;
     }
@@ -391,6 +408,9 @@ function saveNewConf(file, content) {
             break;
         case "diy.sh":
             fs.writeFileSync(diyFile, content);
+            break;
+        case "account.json":
+            fs.writeFileSync(accountConfigFile, content);
             break;
         default:
             break;
@@ -613,6 +633,9 @@ app.get('/api/config/:key', function (request, response) {
                 case 'diy':
                     content = getFileContentByName(diyFile);
                     break;
+                case 'accounts':
+                    content = getFileContentByName(accountConfigFile);
+                    break;
                 default:
                     break;
             }
@@ -649,7 +672,17 @@ app.get('/usrconfig', function (request, response) {
     }
 
 });
+/**
+ * wskey配置页面
+ */
+app.get('/accounts', function (request, response) {
+    if (request.session.loggedin) {
+        response.sendFile(path.join(__dirname + '/public/accounts.html'));
+    } else {
+        response.redirect('/login');
+    }
 
+});
 /**
  * 对比 配置页面
  */

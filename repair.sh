@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-## Author: lan-tianxiang
-## Source: https://github.com/ypngyuanlin/base
+## Author: yongyuanlin
+## Source: https://github.com/yongyuanlin/base
 ## Modified： 2021-03-27
 ## Version： v0.0.2
 
@@ -20,7 +20,7 @@ cd $(dirname $dir_shell)
 function REINSTALLATION() {
   echo -e "\n1. 获取源码"
 
-  git clone https://gitee.com/wuyouio/base $dir_shell
+  git clone -b A1 https://gitee.com/wuyouio/base.git $dir_shell
 
   echo -e "\n2. 还原配置文件"
   mkdir -p $dir_config
